@@ -20,6 +20,7 @@ GENERATED_BODY()
 public:	
 	// Sets default values for this component's properties
 	UGrabber();
+	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 protected:
@@ -34,6 +35,10 @@ private:
 	void Release();
 	//range of reach in cm (default set to 100)
 	float Reach = 100.f;
+	//returns current end of reach line
+	FVector GetReachLineEnd();
+	//returns current start of reach line
+	FVector GetReachLineStart();
 
 	UPhysicsHandleComponent *PhysicsHandle = nullptr;
 

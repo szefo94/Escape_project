@@ -15,6 +15,8 @@ UGrabber::UGrabber()
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
+
+
 // Called when the game starts
 void UGrabber::BeginPlay()
 {
@@ -27,28 +29,14 @@ void UGrabber::BeginPlay()
 void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	FVector PlayerViewPointLocation;
-	FRotator PlayerViewPointRotation;
-	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(
-		OUT PlayerViewPointLocation,
-		OUT PlayerViewPointRotation
-	);
-
-	///drawing red trace	
-	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
-
-
+	GetReachLineEnd();
 	//if the physisc handle ais attached
-	
-	
 	if(PhysicsHandle->GrabbedComponent)
 	{
 		//move the object that we're holding
-		PhysicsHandle->SetTargetLocation(LineTraceEnd);
+		PhysicsHandle->SetTargetLocation(GetReachLineEnd());
 	}
 }
-
 
 void UGrabber::Grab()
 {
@@ -63,25 +51,19 @@ void UGrabber::Grab()
 	if (ActorHit)
 	{
 		PhysicsHandle->GrabComponent(
-			ComponentToGrab,
-			NAME_None,
+			ComponentToGrab, 
+			NAME_None, //no bones needed
 			ComponentToGrab->GetOwner()->GetActorLocation(),
 			true //allow rotation
 		);
-	}
-	
+	}	
 }
-
 
 void UGrabber::FindPhysicsHandleComponent()
 {
 	///look for attached Physics Handle
 	PhysicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
-	if (PhysicsHandle)
-	{
-		//Physics Handle is found
-	}
-	else
+	if (PhysicsHandle == nullptr)
 	{
 		//UE_LOG(LogTemp, Error, TEXT("%s missing physics handle component"), GetOwner()->GetName())
 	}
@@ -92,27 +74,39 @@ void UGrabber::SetupInputComponent()
 	InputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
 	if (InputComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Input component found"))
-			///binding the input action
+		///binding the input action
 		InputComponent->BindAction("Grab", IE_Pressed, this, &UGrabber::Grab);
 		InputComponent->BindAction("Grab", IE_Released, this, &UGrabber::Release);
 	}
 	else
 	{
-
-		//this line giving error in UE_LOGs
+		//this line giving error in UE_LOGs and will not compile the code
 		//UE_LOG(LogTemp, Error, TEXT("%s missing input component"), GetOwner()->GetName())
 	}
 }
 
 void UGrabber::Release()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Grab released"))
-
-		PhysicsHandle->ReleaseComponent();
+	//UE_LOG(LogTemp, Warning, TEXT("Grab released"))
+	PhysicsHandle->ReleaseComponent();
 }
 
 const FHitResult UGrabber::GetFirstPhysicsBodyInReach()
+{
+		
+	FCollisionQueryParams TraceParameters(FName(TEXT("")), false, GetOwner());
+	FHitResult HitResult;
+	GetWorld()->LineTraceSingleByObjectType(
+		OUT HitResult,
+		GetReachLineStart(),
+		GetReachLineEnd(),
+		FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody),
+		TraceParameters
+	);
+	return HitResult;
+}
+
+FVector UGrabber::GetReachLineEnd()
 {
 	FVector PlayerViewPointLocation;
 	FRotator PlayerViewPointRotation;
@@ -120,31 +114,19 @@ const FHitResult UGrabber::GetFirstPhysicsBodyInReach()
 		OUT PlayerViewPointLocation,
 		OUT PlayerViewPointRotation
 	);
-	
-	///drawing red trace	
-	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
-	
-	///setup query params
-	FCollisionQueryParams TraceParameters(FName(TEXT("")), false, GetOwner());
-	//line trace
-	FHitResult Hit;
-	GetWorld()->LineTraceSingleByObjectType(
-		OUT Hit,
-		PlayerViewPointLocation,
-		LineTraceEnd,
-		FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody),
-		TraceParameters
-	);
-	//output for hitting objects
-	AActor* ActorHit = Hit.GetActor();
-	if (ActorHit)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Line trace hit: %s"), *(ActorHit->GetName()))
-	}
-	return Hit;
+	return PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
 }
 
-
+FVector UGrabber::GetReachLineStart()
+{
+	FVector PlayerViewPointLocation;
+	FRotator PlayerViewPointRotation;
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(
+		OUT PlayerViewPointLocation,
+		OUT PlayerViewPointRotation
+	);
+	return PlayerViewPointLocation;
+}
 
 /*
 ///comments including helpful debug tools
