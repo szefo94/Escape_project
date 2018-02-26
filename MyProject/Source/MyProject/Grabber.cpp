@@ -30,6 +30,7 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	GetReachLineEnd();
+	if (!PhysicsHandle) { return; }
 	//if the physisc handle ais attached
 	if(PhysicsHandle->GrabbedComponent)
 	{
@@ -49,7 +50,8 @@ void UGrabber::Grab()
 
 	///if we hit something then attach a physics handle
 	if (ActorHit)
-	{
+	{	
+		if (!PhysicsHandle) { return; }
 		PhysicsHandle->GrabComponent(
 			ComponentToGrab, 
 			NAME_None, //no bones needed
@@ -65,7 +67,7 @@ void UGrabber::FindPhysicsHandleComponent()
 	PhysicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
 	if (PhysicsHandle == nullptr)
 	{
-		//UE_LOG(LogTemp, Error, TEXT("%s missing physics handle component"), GetOwner()->GetName())
+		UE_LOG(LogTemp, Error, TEXT("%s missing physics handle component"), *GetOwner()->GetName())
 	}
 }
 
@@ -79,14 +81,14 @@ void UGrabber::SetupInputComponent()
 		InputComponent->BindAction("Grab", IE_Released, this, &UGrabber::Release);
 	}
 	else
-	{
-		//this line giving error in UE_LOGs and will not compile the code
-		//UE_LOG(LogTemp, Error, TEXT("%s missing input component"), GetOwner()->GetName())
+	{		
+		UE_LOG(LogTemp, Error, TEXT("%s missing input component"), *GetOwner()->GetName())
 	}
 }
 
 void UGrabber::Release()
 {
+	if (!PhysicsHandle) { return; }
 	//UE_LOG(LogTemp, Warning, TEXT("Grab released"))
 	PhysicsHandle->ReleaseComponent();
 }
